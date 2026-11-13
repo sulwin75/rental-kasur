@@ -1,0 +1,16 @@
+{
+  "name": "Sewa Perlengkapan Tidur",
+  "short_name": "Sewa Tidur",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f8f6",
+  "theme_color": "#145b50",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

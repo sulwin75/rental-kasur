@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#145b50">
+<title>Sewa Perlengkapan Tidur</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--green:#145b50;--mint:#e8f3ef;--ink:#18312d;--muted:#687b76;--line:#dce7e2;--bg:#f5f8f6;--white:#fff;--orange:#bd6a24}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:var(--green);color:white;padding:18px max(18px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{font-size:19px;margin:0}header small{opacity:.82}.wrap{max-width:1100px;margin:auto;padding:18px}
+nav{display:flex;gap:8px;overflow:auto;padding:12px 0}.tab{border:1px solid var(--line);background:white;border-radius:999px;padding:10px 15px;white-space:nowrap;color:var(--ink);cursor:pointer}.tab.active{background:var(--green);color:white;border-color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 2px 8px #1232}.product-icon{font-size:32px;background:var(--mint);width:58px;height:58px;border-radius:14px;display:grid;place-items:center;margin-bottom:10px}.muted{color:var(--muted);font-size:13px}.price{font-weight:750;font-size:18px;margin:8px 0}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.btn{background:var(--green);color:white;border:0;border-radius:10px;padding:11px 15px;font-weight:650;cursor:pointer}.btn.secondary{background:white;color:var(--green);border:1px solid var(--green)}.btn.danger{background:#a83c35}.btn:disabled{opacity:.45;cursor:not-allowed}
+h2{font-size:21px;margin:12px 0}h3{font-size:16px;margin:5px 0 10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin:12px 0 20px}.stat{background:white;border:1px solid var(--line);border-radius:14px;padding:15px}.stat b{display:block;font-size:22px;margin-top:5px}
+label{display:block;font-weight:650;font-size:13px;margin:11px 0 5px}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd9d3;border-radius:9px;background:white;color:var(--ink);font:inherit}textarea{min-height:70px}form{max-width:760px}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 13px}.full{grid-column:1/-1}.total{background:var(--mint);padding:14px;border-radius:12px;margin:14px 0}.hidden{display:none!important}.pill{display:inline-block;border-radius:999px;background:var(--mint);padding:4px 9px;font-size:12px}.tablewrap{overflow:auto;background:white;border:1px solid var(--line);border-radius:13px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{text-align:left;padding:11px;border-bottom:1px solid var(--line);font-size:13px}th{background:#f0f5f2}.notice{padding:12px;border-radius:10px;background:#fff5e9;color:#78451e;font-size:13px;margin:12px 0}.empty{padding:25px;text-align:center;color:var(--muted)}.actions{display:flex;gap:7px;flex-wrap:wrap}
+@media(max-width:600px){.wrap{padding:13px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}header{padding:15px}.hide-mobile{display:none}}
+</style>
+</head>
+<body>
+<header><div><h1>🛏️ Sewa Perlengkapan Tidur</h1><small>Kelola barang, pesanan, dan pembayaran</small></div><div class="actions"><span id="userEmail" style="font-size:12px"></span><button class="btn secondary" id="logoutBtn">Keluar</button></div></header>
+<div class="wrap">
+<section id="loginPanel" class="card" style="max-width:460px;margin:35px auto">
+<h2>Masuk aplikasi</h2><p class="muted">Gunakan akun Supabase Anda. Jika belum punya akun, daftar terlebih dahulu.</p>
+<form id="authForm"><label>Email</label><input name="email" type="email" required autocomplete="email"><label>Password</label><input name="password" type="password" required minlength="6" autocomplete="current-password"><label>Nama (untuk pendaftaran)</label><input name="full_name" placeholder="Nama pengguna"><div class="actions" style="margin-top:16px"><button class="btn" type="submit" id="loginBtn">Masuk</button><button class="btn secondary" type="button" id="signupBtn">Daftar akun</button></div><p id="authMessage" class="muted"></p></form></section>
+<div id="appPanel" class="hidden">
+<nav id="nav">
+<button class="tab active" data-page="dashboard">Dashboard</button>
+<button class="tab" data-page="barang">Data Barang</button>
+<button class="tab" data-page="transaksi">Transaksi</button>
+</nav>
+<section id="dashboard">
+<h2>Dashboard</h2><div class="stats" id="stats"></div>
+<div class="card"><h3>Ringkasan aplikasi</h3><p class="muted">Penyewaan dihitung per malam. Ongkos kirim dan penjemputan diisi admin secara manual pada setiap transaksi.</p><div class="notice">Terhubung ke Supabase. Data disimpan online dan dapat diakses oleh pengguna yang memiliki akun.</div></div>
+</section>
+<section id="barang" class="hidden"><div class="row"><h2>Data Barang</h2><button class="btn" id="addProduct">+ Tambah barang</button></div><div id="products" class="grid"></div></section>
+<section id="transaksi" class="hidden">
+<div class="row"><h2>Transaksi Penyewaan</h2><span class="pill">Per malam</span></div>
+<h3>Tambah transaksi baru</h3>
+<form id="rentalForm" class="card">
+<div class="formgrid">
+<div><label>Nama pelanggan</label><input name="customer" required placeholder="Nama lengkap"></div>
+<div><label>No. telepon</label><input name="phone" placeholder="08xxxxxxxxxx"></div>
+<div class="full"><label>Alamat pengiriman</label><textarea name="address" placeholder="Alamat lengkap pelanggan"></textarea></div>
+<div><label>Tanggal mulai sewa</label><input type="date" name="start" required></div>
+<div><label>Tanggal kembali</label><input type="date" name="end" required></div>
+<div class="full"><label>Barang yang disewa <span class="muted">(tersedia = stok untuk tanggal sewa di atas)</span></label><div id="cart"></div><button type="button" class="btn secondary" id="addItem">+ Tambah barang</button></div>
+<div><label>Ongkos kirim (Rp)</label><input type="number" name="shipping" min="0" value="0"></div>
+<div><label>Ongkos penjemputan (Rp)</label><input type="number" name="pickup" min="0" value="0"></div>
+<div><label>DP dibayar (Rp)</label><input type="number" name="dp" min="0" value="0"></div>
+<div class="full"><label>Catatan</label><textarea name="notes" placeholder="Catatan pesanan (opsional)"></textarea></div>
+</div>
+<div class="total" id="estimate">Pilih barang dan tanggal untuk menghitung total.</div>
+<button class="btn" type="submit">Simpan transaksi</button>
+</form>
+<h2 style="margin-top:26px">Riwayat Transaksi</h2><div id="rentals" class="tablewrap"></div>
+</section>
+</div>
+</div>
+<dialog id="productDialog" style="border:0;border-radius:16px;max-width:440px;width:calc(100% - 30px);padding:20px">
+<h3 id="dialogTitle">Tambah barang</h3><form id="productForm">
+<input type="hidden" name="id">
+<label>Nama barang</label><input name="name" required>
+<label>Harga sewa per malam (Rp)</label><input name="price" type="number" min="0" required>
+<label>Total stok (jumlah barang yang dimiliki)</label><input name="stock" type="number" min="0" required>
+<label>Satuan</label><input name="unit" placeholder="buah / set / paket" required>
+<div class="actions" style="margin-top:16px"><button class="btn" type="submit">Simpan</button><button class="btn secondary" type="button" id="closeDialog">Batal</button></div>
+</form></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://qnrxdqksadtukmxioasw.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_LQtmClvCHPzkEyBsrrIYCQ_eXg89vR3';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const seed=[
+{name:'Kasur',price_per_night:50000,stock:10,unit:'unit'},
+{name:'Bantal',price_per_night:10000,stock:20,unit:'buah'},
+{name:'Sprei',price_per_night:15000,stock:15,unit:'set'},
+{name:'Selimut',price_per_night:15000,stock:15,unit:'buah'},
+{name:'Handuk',price_per_night:10000,stock:20,unit:'buah'},
+{name:'Paket Komplit (kasur, bantal, sprei, selimut)',price_per_night:85000,stock:8,unit:'paket'}
+];
+let state={products:[],rentals:[]};
+const rupiah=n=>'Rp'+Number(n||0).toLocaleString('id-ID');
+const el=id=>document.getElementById(id);
+const form=el('rentalForm');
+function msg(t){el('authMessage').textContent=t;}
+async function loadData(){
+ const [pr,rr,ir]=await Promise.all([db.from('products').select('*').eq('active',true).order('name'),db.from('rentals').select('*').order('created_at',{ascending:false}),db.from('rental_items').select('*')]);
+ if(pr.error||rr.error||ir.error) throw (pr.error||rr.error||ir.error);
+ state.products=pr.data.map(p=>({...p,id:p.id,price:Number(p.price_per_night),icon:'📦'}));
+ state.rentals=rr.data.map(r=>{const items=ir.data.filter(i=>i.rental_id===r.id);return {...r,id:r.id,customer:r.customer_name,phone:r.customer_phone,items,start:r.start_date,end:r.end_date,nights:r.nights,total:Number(r.total),dp:Number(r.deposit_paid),status:r.status};});
+ render();
+}
+async function ensureSeed(){const {count,error}=await db.from('products').select('*',{count:'exact',head:true});if(error)throw error;if(count===0){const {error:e}=await db.from('products').insert(seed);if(e)throw e;}}
+function showApp(user){el('loginPanel').classList.add('hidden');el('appPanel').classList.remove('hidden');el('userEmail').textContent=user.email||'';}
+function showLogin(){el('loginPanel').classList.remove('hidden');el('appPanel').classList.add('hidden');}
+async function start(){const {data:{session}}=await db.auth.getSession();if(!session){showLogin();return;}showApp(session.user);try{await ensureSeed();await loadData();}catch(e){alert('Gagal memuat data Supabase: '+e.message);}}
+el('authForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);el('loginBtn').disabled=true;msg('Sedang masuk...');const {error}=await db.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});el('loginBtn').disabled=false;if(error){msg(error.message);return;}await start();};
+el('signupBtn').onclick=async()=>{const f=new FormData(el('authForm'));if(!f.get('email')||!f.get('password')){msg('Isi email dan password minimal 6 karakter.');return;}msg('Mendaftarkan akun...');const {data,error}=await db.auth.signUp({email:f.get('email'),password:f.get('password'),options:{data:{full_name:f.get('full_name')||''}}});if(error){msg(error.message);return;}if(data.session){await start();}else{msg('Pendaftaran berhasil. Periksa email untuk konfirmasi, lalu masuk.');}};
+el('logoutBtn').onclick=async()=>{await db.auth.signOut();showLogin();};
+db.auth.onAuthStateChange((_event,session)=>{if(!session)showLogin();});
+function page(name){document.querySelectorAll('#appPanel section').forEach(s=>s.classList.add('hidden'));el(name).classList.remove('hidden');document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.page===name));render();}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>page(b.dataset.page));
+function render(){
+ el('stats').innerHTML=`<div class="stat"><span class="muted">Jenis barang</span><b>${state.products.length}</b></div><div class="stat"><span class="muted">Total transaksi</span><b>${state.rentals.length}</b></div><div class="stat"><span class="muted">Pendapatan tercatat (DP)</span><b>${rupiah(state.rentals.reduce((a,r)=>a+r.dp,0))}</b></div><div class="stat"><span class="muted">Item sedang disewa hari ini</span><b>${itemsOutNow()}</b></div>`;
+ el('products').innerHTML=state.products.map(p=>`<article class="card"><div class="product-icon">📦</div><h3>${esc(p.name)}</h3><div class="price">${rupiah(p.price)} <small class="muted">/ malam</small></div>${stockInfo(p)}<button class="btn secondary" onclick="editProduct('${p.id}')">Ubah harga/stok</button></article>`).join('');
+ renderCart();
+ el('rentals').innerHTML=state.rentals.length?`<table><thead><tr><th>Pelanggan</th><th>Barang</th><th>Periode</th><th>Total</th><th>DP</th><th>Status</th></tr></thead><tbody>${state.rentals.map(r=>`<tr><td>${esc(r.customer)}<br><span class="muted">${esc(r.phone)}</span></td><td>${r.items.map(i=>esc(i.product_name)+' × '+i.quantity).join('<br>')||'-'}</td><td>${r.start} – ${r.end}<br>${r.nights} malam</td><td>${rupiah(r.total)}</td><td>${rupiah(r.dp)}</td><td><span class="pill">${esc(r.status)}</span>${r.status!=='Lunas'?`<br><button class="btn secondary" style="margin-top:6px" onclick="markPaid('${r.id}')">Lunasi</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Belum ada transaksi penyewaan.</div>';
+ estimate();
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+window.editProduct= function(id){const p=state.products.find(x=>x.id===id);const f=el('productForm');f.id.value=p?.id||'';f.name.value=p?.name||'';f.price.value=p?.price??'';f.stock.value=p?.stock??'';f.unit.value=p?.unit||'buah';el('dialogTitle').textContent=p?'Ubah barang':'Tambah barang';el('productDialog').showModal();};
+el('addProduct').onclick=()=>editProduct('');el('closeDialog').onclick=()=>el('productDialog').close();
+el('productForm').onsubmit=async e=>{e.preventDefault();const f=e.target,p={name:f.name.value,price_per_night:+f.price.value,stock:+f.stock.value,unit:f.unit.value,active:true};const result=f.id.value?await db.from('products').update(p).eq('id',f.id.value):await db.from('products').insert(p);if(result.error){alert('Gagal menyimpan barang: '+result.error.message);return;}el('productDialog').close();await loadData();};
+function todayISO(){const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
+function nextDay(x){const d=new Date(x+'T00:00:00');d.setDate(d.getDate()+1);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
+function reserved(pid,start,end){return state.rentals.filter(r=>r.status!=='Dibatalkan'&&r.start<end&&r.end>start).reduce((a,r)=>a+r.items.filter(i=>i.product_id===pid).reduce((b,i)=>b+i.quantity,0),0);}
+function avail(p,start,end){return Math.max(0,p.stock-reserved(p.id,start,end));}
+function getRange(){const s=form.start.value,e=form.end.value;return s&&e&&e>s?[s,e]:[todayISO(),nextDay(todayISO())];}
+function stockInfo(p){const t=todayISO(),av=avail(p,t,nextDay(t)),used=p.stock-av;return `<p class="muted" style="margin:6px 0"><b style="font-size:17px;color:${av===0?'#a83c35':'var(--green)'}">${av}</b> tersedia hari ini dari ${p.stock} ${esc(p.unit)}${used>0?`<br>Sedang disewa/dipesan: ${used}`:''}</p>`;}
+function itemsOutNow(){const t=todayISO(),n=nextDay(t);return state.rentals.filter(r=>r.status!=='Dibatalkan'&&r.start<n&&r.end>t).reduce((a,r)=>a+r.items.reduce((b,i)=>b+i.quantity,0),0);}
+let cart=[{product_id:'',qty:1}];
+function renderCart(){
+ const R=getRange();
+ cart.forEach(c=>{if(!c.product_id)c.product_id=state.products[0]?.id||'';});
+ el('cart').innerHTML=cart.map((c,i)=>`<div class="row" style="gap:8px;margin-bottom:8px"><select style="flex:1" onchange="cart[${i}].product_id=this.value;estimate()">${state.products.map(p=>`<option value="${p.id}" ${p.id===c.product_id?'selected':''}>${esc(p.name)} — ${rupiah(p.price)}/malam (tersedia ${avail(p,R[0],R[1])}/${p.stock})</option>`).join('')}</select><input type="number" min="1" value="${c.qty}" style="width:76px" onchange="cart[${i}].qty=Math.max(1,+this.value||1);estimate()">${cart.length>1?`<button type="button" class="btn danger" onclick="cart.splice(${i},1);renderCart();estimate()">✕</button>`:''}</div>`).join('');
+}
+el('addItem').onclick=()=>{cart.push({product_id:'',qty:1});renderCart();estimate();};
+function estimate(){if(!form)return;const f=new FormData(form),start=f.get('start'),end=f.get('end');const nights=start&&end?Math.round((new Date(end+'T00:00:00')-new Date(start+'T00:00:00'))/86400000):0;
+ const lines=cart.map(c=>{const p=state.products.find(x=>x.id===c.product_id);return p?{p,qty:c.qty,sum:nights>0?p.price*c.qty*nights:0,a:nights>0?avail(p,start,end):null}:null}).filter(Boolean);
+ const sub=lines.reduce((a,l)=>a+l.sum,0),ship=+f.get('shipping')||0,pick=+f.get('pickup')||0,total=sub+ship+pick;
+ el('estimate').innerHTML=lines.map(l=>`<div class="row"><span>${esc(l.p.name)} × ${l.qty}${l.a!==null&&l.qty>l.a?` <b style="color:#a83c35">⚠️ tersedia hanya ${l.a}</b>`:''}</span><b>${rupiah(l.sum)}</b></div>`).join('')+`<div class="muted">${Math.max(0,nights)} malam</div><div class="row"><span>Ongkos kirim</span><b>${rupiah(ship)}</b></div><div class="row"><span>Penjemputan</span><b>${rupiah(pick)}</b></div><hr><div class="row"><b>Total tagihan</b><b>${rupiah(total)}</b></div>`;}
+form.addEventListener('input',estimate);form.addEventListener('change',estimate);form.addEventListener('change',e=>{if(e.target.name==='start'||e.target.name==='end')renderCart();});
+form.onsubmit=async e=>{e.preventDefault();const f=new FormData(form),m={};cart.forEach(c=>{if(c.product_id)m[c.product_id]=(m[c.product_id]||0)+c.qty;});const items=Object.entries(m).map(([product_id,quantity])=>({product_id,quantity}));if(!items.length){alert('Pilih minimal satu barang');return;}
+ const {error}=await db.rpc('create_rental_multi',{p_customer_name:f.get('customer'),p_customer_phone:f.get('phone'),p_customer_address:f.get('address'),p_items:items,p_start_date:f.get('start'),p_end_date:f.get('end'),p_shipping_fee:+f.get('shipping'),p_pickup_fee:+f.get('pickup'),p_deposit_paid:+f.get('dp'),p_notes:f.get('notes')});
+ if(error){alert('Transaksi gagal: '+error.message);return;}
+ form.reset();form.shipping.value=0;form.pickup.value=0;form.dp.value=0;cart=[{product_id:'',qty:1}];alert('Transaksi berhasil disimpan.');await loadData();page('transaksi');};
+window.markPaid=async id=>{const {error}=await db.rpc('mark_rental_paid',{p_rental_id:id});if(error){alert('Gagal melunasi: '+error.message);return;}await loadData();};
+start();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body></html>
